@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
 	if (numWorkers > MAXWORKERS) numWorkers = MAXWORKERS;
 	initList();
 		/*create a struct to send arguments into quicksort*/
-	thread_data td;
+	struct thread_data td;
 	td.lower = 0;
 	td.higher = size-1;
 	start_time = read_timer();
@@ -107,7 +107,7 @@ void *quickSort(void *threadarg){
 			we will not create new thread. Instead, the current thread	will create
 			a new struct and call on quicksort again*/
 			if(count == numWorkers){
-				thread_data newData1;
+				struct thread_data newData1;
 				newData1.lower = j+1;
 				newData1.higher = high;
 				quickSort((void *) &newData1);
@@ -122,7 +122,7 @@ void *quickSort(void *threadarg){
 			}
 
 			/* the current thread will also take care of the other half of the interval*/
-			thread_data newData;
+			struct thread_data newData;
 			newData.lower = low;
 			newData.higher = j-1;
 			quickSort((void *) &newData);

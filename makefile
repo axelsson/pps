@@ -1,9 +1,10 @@
 matrix:	clean
-	g++ -o matrix matrixsum.c -lpthread
-
+	gcc -std=c99 -o matrix matrixsum.c -lpthread
 
 quick: clean
-	g++ -o quick quicksort.c -lpthread
+	gcc -std=c99 -o quick quicksort.c -lpthread
 
+tee: clean
+	gcc -std=c99 -o tee tee.c -lpthread
 clean:
 	$(RM) count *.out *~ *.o *.h.gch tests.cpp utdata.txt
