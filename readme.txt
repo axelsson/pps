@@ -20,3 +20,12 @@ make quick
 The arguments are optional and their default values are 10000 and 10, respectively. If input is higher than that, the default values are used (same as for matrix).
 
 Both of the program has "DEBUG" defined for printing initial values of the matrix and the list (will also print sorted list). 
+
+4. The Unix tee command (20 points)
+Tee.c will work just as the tee command does; except it is done with three threads. One thread listens for stdin, the second writes the input to stdout and the third one writes to the given file. The threads signal each other when they are ready for read or write.
+
+Usage:
+make tee
+./tee filename
+
+The argument filename is mandatory. 

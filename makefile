@@ -6,5 +6,6 @@ quick: clean
 
 tee: clean
 	gcc -std=c99 -o tee tee.c -lpthread
+	
 clean:
 	$(RM) count *.out *~ *.o *.h.gch tests.cpp utdata.txt
