@@ -1,3 +1,5 @@
+
+#define DEBUG
 #ifndef _REENTRANT 
 #define _REENTRANT 
 #endif 
@@ -17,18 +19,16 @@ struct thread_data{
 	int higher;
 };
 
-/*keeps track of the data for each worker*/
-struct thread_data thread_data_array[MAXWORKERS];
+struct thread_data thread_data_array[MAXWORKERS]; /*keeps track of the data for each worker*/
 int list[MAXSIZE]; /*the list that will be sorted*/
 double start_time, end_time; /* start and end times */
 pthread_mutex_t counter; 
 int count = 0; /* count how many workers are created*/
 pthread_t workerid[MAXWORKERS];
-int size;
-int numWorkers;
+int size;	/*size of the list that will be used*/
+int numWorkers;	/*number of threads that will be used*/
 
 void * quickSort( void *threadarg);
-void quick_sort(int[], int, int);
 void initList();
 double read_timer();
 bool isSorted();
@@ -38,37 +38,34 @@ int getThreadNumber();
 int main(int argc, char *argv[]){
 
   /* read command line args if any */
-      size = (argc > 1)? atoi(argv[1]) : MAXSIZE;
-      numWorkers = (argc > 2)? atoi(argv[2]) : MAXWORKERS;
-      if (size > MAXSIZE) size = MAXSIZE;
-      if (numWorkers > MAXWORKERS) numWorkers = MAXWORKERS;
-	//for (int k = 0; k < 1000; ++k){
-		count = 0;	//reset count
-		initList();
+	size = (argc > 1)? atoi(argv[1]) : MAXSIZE;
+	numWorkers = (argc > 2)? atoi(argv[2]) : MAXWORKERS;
+	if (size > MAXSIZE) size = MAXSIZE;
+	if (numWorkers > MAXWORKERS) numWorkers = MAXWORKERS;
+	initList();
 		/*create a struct to send arguments into quicksort*/
-		thread_data td;
-		td.lower = 0;
-		td.higher = size-1;
-		start_time = read_timer();
-		quickSort((void*) &td);
+	thread_data td;
+	td.lower = 0;
+	td.higher = size-1;
+	start_time = read_timer();
+	quickSort((void*) &td);
 
   /* wait for all threads to finish*/
-		for (int i = 0; i < count; i++) {
-			pthread_join(workerid[i], NULL);  
-		}
+	for (int i = 0; i < count; i++) {
+		pthread_join(workerid[i], NULL);  
+	}
 		  /* print results */
-		end_time = read_timer();
+	end_time = read_timer();
 	/* print the results and check whether the list is sorted*/
-		printf("Result:\n");
-		for (int i = 0; i < size; ++i)
-		{
-			printf("%d ", list[i]);
-		}
-		printf("\nFinished in %g sec\n", end_time - start_time);
-		isSorted();
-	//	if(!isSorted())
-	//		break;
-	//}
+#ifdef DEBUG
+	printf("Result:\n");
+	for (int i = 0; i < size; ++i)
+	{
+		printf("%d ", list[i]);
+	}
+#endif
+	printf("\nFinished in %g sec\n", end_time - start_time);
+	isSorted();
 }
 
 /* each quickSort will do quicksearch recursively in the range given in the arguments,
@@ -133,53 +130,54 @@ void *quickSort(void *threadarg){
 	}
 
 /* lock that keeps track on which thread(number) should be created*/
-int getThreadNumber(){
-	pthread_mutex_lock(&counter);
-	int number = count;
-	count++;
-	pthread_mutex_unlock(&counter);
-	return number;
-}
+	int getThreadNumber(){
+		pthread_mutex_lock(&counter);
+		int number = count;
+		count++;
+		pthread_mutex_unlock(&counter);
+		return number;
+	}
 
 /* timer */
-double read_timer() {
-	static bool initialized = false;
-	static struct timeval start;
-	struct timeval end;
-	if( !initialized )
-	{
-		gettimeofday( &start, NULL );
-		initialized = true;
+	double read_timer() {
+		static bool initialized = false;
+		static struct timeval start;
+		struct timeval end;
+		if( !initialized )
+		{
+			gettimeofday( &start, NULL );
+			initialized = true;
+		}
+		gettimeofday( &end, NULL );
+		return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
 	}
-	gettimeofday( &end, NULL );
-	return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
-}
 
 /* check if the list is successfully sorted*/
-bool isSorted(){
-	bool sorted = true;
-	for (int i = 1; i < size; ++i)
-	{
-		if(list[i]<list[i-1])
-			sorted = false;
+	bool isSorted(){
+		bool sorted = true;
+		for (int i = 1; i < size; ++i)
+		{
+			if(list[i]<list[i-1])
+				sorted = false;
+		}
+		if (!sorted){
+			printf("Not sorted.\n");
+			return false;
+		}
+		else
+			printf("Sorted.\n");
+		return true;
 	}
-	if (!sorted){
-		printf("Not sorted.\n");
-		return false;
-	}
-	else
-		printf("Sorted.\n");
-	return true;
-}
 
 /*fill the list with random numbers*/
-void initList(){
-	srand (time(NULL));
-	printf("Generated list:\n");
-	for (int i = 0; i < size; ++i)
-	{
-		list[i] = rand()%99;
-		printf("%d ", list[i]);
+	void initList(){
+		srand (time(NULL));
+		for (int i = 0; i < size; ++i)
+		{
+			list[i] = rand()%99;
+#ifdef DEBUG
+			printf("%d ", list[i]);
+#endif
+		}
+		printf("\n");
 	}
-	printf("\n");
-}

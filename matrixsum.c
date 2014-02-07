@@ -1,14 +1,3 @@
-/* matrix summation using pthreads
-
-   features: uses a barrier; the Worker[0] computes
-             the total sum from partial sums computed by Workers
-             and prints the total sum to the standard output
-
-   usage under Linux:
-     gcc matrixSum.c -lpthread
-     a.out size numWorkers
-
-*/
 //#define DEBUG
 #ifndef _REENTRANT 
 #define _REENTRANT 
@@ -28,86 +17,26 @@ pthread_cond_t go;        /* condition variable for leaving */
 int numWorkers;           /* number of workers */ 
 int numArrived = 0;       /* number who have arrived */
 pthread_mutex_t maxCheck; /* mutex locks for the max and min values*/
-     pthread_mutex_t minCheck;
+pthread_mutex_t minCheck;
 pthread_mutex_t sumCheck; /* mutex lock for the total sum*/
 pthread_mutex_t bagLock; /* lock for the bag of tasks*/
+
 /*values to keep track of max and min values and their coordinates*/
-     int globalMaxX, globalMaxY, globalMinX, globalMinY, globalSum;
-     int globalMax = 0; 
-     int globalMin = INT_MAX;
-     int taskRow = 0; /*the current row for the workers to process*/
-
-/* a reusable counter barrier */
-     void Barrier() {
-      pthread_mutex_lock(&barrier);
-      numArrived++;
-      if (numArrived == numWorkers) {
-        numArrived = 0;
-        pthread_cond_broadcast(&go);
-      } else
-      pthread_cond_wait(&go, &barrier);
-      pthread_mutex_unlock(&barrier);
-    }
-
-/* Uses mutex lock then adds a value to the total sum and then unlocks it again*/
-    void updateSum(int value){
-      pthread_mutex_lock(&sumCheck);
-      globalSum += value;
-      pthread_mutex_unlock(&sumCheck);
-    }
-
-/* Uses mutex to update global max, only updates if value is bigger*/
-    void maxValue(int value, int x, int y){
-      pthread_mutex_lock(&maxCheck);
-      if (value > globalMax){
-        globalMax = value;
-        globalMaxX = x;
-        globalMaxY = y;
-      }
-      pthread_mutex_unlock(&maxCheck);
-    }
-
-/* Same as above but for global minimum value*/
-    void minValue(int value, int x, int y){
-      pthread_mutex_lock(&minCheck);
-      if (value < globalMin){
-        globalMin = value;
-        globalMinX = x;
-        globalMinY = y;
-      }
-      pthread_mutex_unlock(&minCheck);
-    }
-
-/* timer */
-    double read_timer() {
-      static bool initialized = false;
-      static struct timeval start;
-      struct timeval end;
-      if( !initialized )
-      {
-        gettimeofday( &start, NULL );
-        initialized = true;
-      }
-      gettimeofday( &end, NULL );
-      return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
-    }
-
-/* returns a row and increments the value, mutex lock so the workers cant 
-get the same row to work on*/
-    int getTask(){
-      pthread_mutex_lock(&bagLock);
-      int newRow = taskRow;
-      taskRow++;
-      pthread_mutex_unlock(&bagLock);
-      return newRow;
-    }
-
+int globalMaxX, globalMaxY, globalMinX, globalMinY, globalSum;
+int globalMax = 0; 
+int globalMin = INT_MAX;
+int taskRow = 0; /*the current row for the workers to process*/
 double start_time, end_time; /* start and end times */
 int size, stripSize;  /* assume size is multiple of numWorkers */
 int sums[MAXWORKERS]; /* partial sums */
 int matrix[MAXSIZE][MAXSIZE]; /* matrix */
 
-    void *Worker(void *);
+void *Worker(void *);
+double read_timer();
+int getTask();
+void maxValue(int, int, int);
+void minValue(int, int, int);
+void updateSum(int);
 
 /* read command line, initialize, and create threads then write results*/
     int main(int argc, char *argv[]) {
@@ -217,3 +146,67 @@ int matrix[MAXSIZE][MAXSIZE]; /* matrix */
     minValue(min, minX, minY);
     updateSum(total);
   }
+  /* a reusable counter barrier */
+     void Barrier() {
+      pthread_mutex_lock(&barrier);
+      numArrived++;
+      if (numArrived == numWorkers) {
+        numArrived = 0;
+        pthread_cond_broadcast(&go);
+      } else
+      pthread_cond_wait(&go, &barrier);
+      pthread_mutex_unlock(&barrier);
+    }
+
+/* Uses mutex lock then adds a value to the total sum and then unlocks it again*/
+    void updateSum(int value){
+      pthread_mutex_lock(&sumCheck);
+      globalSum += value;
+      pthread_mutex_unlock(&sumCheck);
+    }
+
+/* Uses mutex to update global max, only updates if value is bigger*/
+    void maxValue(int value, int x, int y){
+      pthread_mutex_lock(&maxCheck);
+      if (value > globalMax){
+        globalMax = value;
+        globalMaxX = x;
+        globalMaxY = y;
+      }
+      pthread_mutex_unlock(&maxCheck);
+    }
+
+/* Same as above but for global minimum value*/
+    void minValue(int value, int x, int y){
+      pthread_mutex_lock(&minCheck);
+      if (value < globalMin){
+        globalMin = value;
+        globalMinX = x;
+        globalMinY = y;
+      }
+      pthread_mutex_unlock(&minCheck);
+    }
+
+/* timer */
+    double read_timer() {
+      static bool initialized = false;
+      static struct timeval start;
+      struct timeval end;
+      if( !initialized )
+      {
+        gettimeofday( &start, NULL );
+        initialized = true;
+      }
+      gettimeofday( &end, NULL );
+      return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
+    }
+
+/* returns a row and increments the value, mutex lock so the workers cant 
+get the same row to work on*/
+    int getTask(){
+      pthread_mutex_lock(&bagLock);
+      int newRow = taskRow;
+      taskRow++;
+      pthread_mutex_unlock(&bagLock);
+      return newRow;
+    }
