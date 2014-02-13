@@ -12,7 +12,7 @@ void *parentBird(void *);  /* the two threads */
 void *babyBird(void *);
 
 sem_t empty, full, eating;    /* the global semaphores */
-int data;             /* shared buffer         */
+int worms;             /* shared buffer         */
 int numIters;
 int numBabies;
 long i;
@@ -29,7 +29,6 @@ int main(int argc, char *argv[]) {
   srand (time(NULL));
 
   numBabies = atoi(argv[1]);
-  numIters = atoi(argv[2]);
   pthread_t babyId[numBabies];
   sem_init(&empty, SHARED, 1);  /* sem empty = 1 */
   sem_init(&full, SHARED, 0);   /* sem full = 0  */
@@ -41,10 +40,9 @@ int main(int argc, char *argv[]) {
       //fler id
     pthread_create(&babyId[i], &attr, babyBird, (void * ) i);
   }
-
-  pthread_join(pid, NULL);
-  pthread_join(cid, NULL);
-  printf("main done\n");
+  for (int i = 0; i < numBabies; i++) {
+    pthread_join(babyId[i], NULL);  
+  }
 }
 
 /* deposit 1, ..., numIters into the data buffer */
@@ -54,10 +52,10 @@ void *parentBird(void *arg) {
   while(1){
     sem_wait(&empty);
     sem_wait(&eating);
-    data = rand()%9+1;
+    worms = rand()%9+1;
     printf("Parent goes out to hunt!\n");
     sleep(3);
-    printf("Parent catches %d worms\n", data);
+    printf("Parent catches %d worms\n", worms);
     sem_post(&full);
     sem_post(&eating);
   }
@@ -67,14 +65,14 @@ void *parentBird(void *arg) {
 void *babyBird(void *arg) {
   long myId = (long) arg;
   printf("Consumer created\n");
+  //måste äta under nån stund
   while(1){
-    if (data > 0){
-
+    if (worms > 0){
       sem_wait(&eating);
-      data--; 
+      worms--; 
       int sleepTime = rand()%3+1;
       printf("baby %ld ate one worm and will sleep for %d sec\n", myId, sleepTime);
-      if (data == 0){
+      if (worms == 0){
         printf("baby %ld signals parent for more food\n", myId);
         sem_post(&empty);
       }
