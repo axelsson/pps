@@ -13,13 +13,10 @@ void *babyBird(void *);
 
 sem_t empty, full, eating;    /* the global semaphores */
 int worms;             /* shared buffer         */
-int numIters;
-int numBabies;
+int numBabies;  /*number of baby birds*/
 long i;
 
-/* main() -- read command line and create threads, then
-             print result when the threads have quit */
-
+/* main() -- read command line and create threads */
 int main(int argc, char *argv[]) {
   /* thread ids and attributes */
   pthread_t pid, cid;  
@@ -30,14 +27,15 @@ int main(int argc, char *argv[]) {
 
   numBabies = atoi(argv[1]);
   pthread_t babyId[numBabies];
-  sem_init(&empty, SHARED, 1);  /* sem empty = 1 */
-  sem_init(&full, SHARED, 0);   /* sem full = 0  */
-  sem_init(&eating, SHARED, 1);
+  sem_init(&empty, SHARED, 0);  /* condition sem, init = 0 */
+  sem_init(&full, SHARED, 0);   /* condition sem, init = 0  */
+  sem_init(&eating, SHARED, 1); /* mutex sem, init = 1 */
+  worms = 5; //initial value
 
   printf("main started\n");
   pthread_create(&pid, &attr, parentBird, NULL);
+  /*create the given number of baby bird (consumers)*/
   for (i = 0; i < numBabies; ++i){
-      //fler id
     pthread_create(&babyId[i], &attr, babyBird, (void * ) i);
   }
   for (int i = 0; i < numBabies; i++) {
@@ -45,42 +43,41 @@ int main(int argc, char *argv[]) {
   }
 }
 
-/* deposit 1, ..., numIters into the data buffer */
+/* Producer: the parent bird will wait for a baby to signal when the worms are finished,
+  it will then gather more and signal again when there are more worms to eat */
 void *parentBird(void *arg) {
   printf("Producer created\n");
   sleep(1);
   while(1){
-    sem_wait(&empty);
-    sem_wait(&eating);
+    sem_wait(&empty); /* wait for signal from baby*/
     worms = rand()%9+1;
     printf("Parent goes out to hunt!\n");
     sleep(3);
     printf("Parent catches %d worms\n", worms);
-    sem_post(&full);
-    sem_post(&eating);
+    sem_post(&full);  /* tell baby it can eat now*/
   }
 }
 
-/* fetch numIters items from the buffer and sum them */
+/* Consumers: the babies will wait for their time to eat, and if a bird discover there are no worms left,
+  it will chirp for their parent for a refill. Else it will just eat a worm, pass the bowl on to
+  another baby and then sleep for a while */
 void *babyBird(void *arg) {
   long myId = (long) arg;
   printf("Consumer created\n");
-  //måste äta under nån stund
   while(1){
-    if (worms > 0){
-      sem_wait(&eating);
-      worms--; 
-      int sleepTime = rand()%3+1;
-      printf("baby %ld ate one worm and will sleep for %d sec\n", myId, sleepTime);
-      if (worms == 0){
-        printf("baby %ld signals parent for more food\n", myId);
-        sem_post(&empty);
-      }
-      sem_post(&eating);
-      sleep(sleepTime);
+    sem_wait(&eating);
+    if (worms == 0){
+      printf("baby %ld signals parent for more food\n", myId);
+      sem_post(&empty); /* signal parent that bowl is empty*/
+      sem_wait(&full);  /* wait for parent to refill */
+      sem_post(&eating);  /* tell the others that it is done eating */
     }
     else{
-      sem_wait(&full);
+      worms--; /* eat a worm! */
+      int sleepTime = rand()%3+1;
+      printf("baby %ld ate one worm and will sleep for %d sec\n", myId, sleepTime);
+      sem_post(&eating);  /* tell its siblings that they can eat now*/
+      sleep(sleepTime);
     }
   }
 }

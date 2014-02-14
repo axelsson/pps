@@ -14,12 +14,10 @@ void *bees(void *);
 
 sem_t empty, full, fillHoney;    /* the global semaphores */
 int honey;             /* shared buffer         */
-int numBees;
+int numBees;  /* number of bees working*/
 long i;
 
-/* main() -- read command line and create threads, then
-             print result when the threads have quit */
-
+/* main() -- read command line and create threads */
 int main(int argc, char *argv[]) {
   /* thread ids and attributes */
   pthread_t pid;  
@@ -29,17 +27,16 @@ int main(int argc, char *argv[]) {
   srand (time(NULL));
 
   numBees = atoi(argv[1]);
-  numHoney = atoi(argv[2]);
-  honey = MAX_HONEY;
+  honey = 0;
   pthread_t beeId[numBees];
-  sem_init(&empty, SHARED, 0);  /* sem empty = 1 */
-  sem_init(&full, SHARED, 1);   /* sem full = 0  */
-  sem_init(&fillHoney, SHARED, 1);
+  sem_init(&empty, SHARED, 0);  /* condition sem init = 0 */
+  sem_init(&full, SHARED, 0);   /* condition sem init = 0 */
+  sem_init(&fillHoney, SHARED, 1);  /* mutex sem init = 1 */
 
   printf("main started\n");
   pthread_create(&pid, &attr, bear, NULL);
+  /* create the given number of bees (producers)*/
   for (i = 0; i < numBees; ++i){
-      //fler id
     pthread_create(&beeId[i], &attr, bees, (void * ) i);
   }
   for (int i = 0; i < numBees; i++) {
@@ -47,40 +44,40 @@ int main(int argc, char *argv[]) {
   }
 
 }
-
-/* deposit 1, ..., numIters into the data buffer */
+/* Consumer: the bear will wait for a bee to wake it up, then eat all the honey and 
+ tell the bee to continue to produce honey */
 void *bear(void *arg) {
   printf("Consumer created\n");
   sleep(1);
   while(1){
     sem_wait(&full);
-    sem_wait(&fillHoney);
     honey = 0;
     printf("Bear eats!\n");
     sem_post(&empty);
-    sem_post(&fillHoney);
   }
 }
 
-/* fetch numIters items from the buffer and sum them */
+/* Producers: The bees will wait for their turn to put honey into the pot. If the pot is full, 
+  the bee will signal the bear and then wait for the bear to say it needs more. It will then
+  let the other bees continue to put honey in the pot. If the put is not full it will leave its honey.*/
 void *bees(void *arg) {
   long myId = (long) arg;
   printf("Producer created\n");
   while(1){
-    if (honey < MAX_HONEY){
-      sem_wait(&fillHoney);
-      honey++; 
-      int gatheringTime = rand()%3;
-      printf("bee %ld produced some honey\n", myId);
-      if (honey == MAX_HONEY){
-        printf("bee %ld signals bear\n", myId);
-        sem_post(&full);
-      }
-      sem_post(&fillHoney);
-      sleep(gatheringTime);
+    /* wait for its turn*/
+    sem_wait(&fillHoney);
+    if (honey == MAX_HONEY){
+      printf("bee %ld signals bear\n", myId);
+      sem_post(&full);  /* tell bear honey pot is full*/
+      sem_wait(&empty); /* wait for it to be empty again*/
+      sem_post(&fillHoney); /* tell other bees to continue*/
     }
     else{
-      sem_wait(&empty);
+      honey++; /* put some honey in the pot*/
+      int gatheringTime = rand()%3;
+      printf("bee %ld produced some honey\n", myId);
+      sem_post(&fillHoney); /* tell the other bees the pot is "free" */
+      sleep(gatheringTime);
     }
   }
 }
