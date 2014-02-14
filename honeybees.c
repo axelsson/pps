@@ -17,7 +17,14 @@ int honey;             /* shared buffer         */
 int numBees;  /* number of bees working*/
 long i;
 
-/* main() -- read command line and create threads */
+/* main() -- read command line and create threads 
+
+FAIRNESS: Same as for hungry birds, since there is no actual queue for the honey bees
+waiting to drop their honey, some might have to wait for a long time while some gets to 
+fill the pot often. The "gatheringtime" will help to make it more fair though, since it 
+will make threads wait for a while until they continue to wait for the semaphore so another
+thread will get the "chance" to enter the semaphore.
+*/
 int main(int argc, char *argv[]) {
   /* thread ids and attributes */
   pthread_t pid;  

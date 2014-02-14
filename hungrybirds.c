@@ -16,7 +16,16 @@ int worms;             /* shared buffer         */
 int numBabies;  /*number of baby birds*/
 long i;
 
-/* main() -- read command line and create threads */
+/* main() -- read command line and create threads
+
+FAIRNESS: Since there is no order between the blocking threads (baby birds) waiting for a 
+semaphore, there is no way to guarantee that all baby birds get to eat in this
+simulation. Any of the blocking threads may get to enter when some other threads releases
+the semaphore. For some fairness, some sort of queue needs to be implemented. However,
+the sleeping time will help to make it more fair since it means some other bird will get 
+time to enter the semaphore while the other sleeps. 
+*/
+
 int main(int argc, char *argv[]) {
   /* thread ids and attributes */
   pthread_t pid, cid;  
