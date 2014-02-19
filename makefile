@@ -13,5 +13,9 @@ birds: clean
 honey: clean
 	gcc -std=c99 -o honey honeybees.c -lpthread
 	
+matrixomp: clean
+	gcc -std=c99 -o matrixomp matrixomp.c -fopenmp
+test: clean
+	gcc -std=c99 -o test test.c -fopenmp
 clean:
-	$(RM) count *.out *~ *.o *.h.gch tests.cpp utdata.txt
+	$(RM) count *.out *~ *.o *.h.gch *.exe tests.cpp utdata.txt
