@@ -4,6 +4,9 @@ matrix:	clean
 quick: clean
 	gcc -std=c99 -o quick quicksort.c -lpthread
 
+quickomp: clean
+	gcc -std=c99 -o quickomp quickomp.c -fopenmp
+
 tee: clean
 	gcc -std=c99 -o tee tee.c -lpthread
 
@@ -13,8 +16,12 @@ birds: clean
 honey: clean
 	gcc -std=c99 -o honey honeybees.c -lpthread
 	
-matrixomp: clean
-	gcc -std=c99 -o matrixomp matrixomp.c -fopenmp
+matrixompA: clean
+	gcc -std=c99 -o matrixompA matrixompA.c -fopenmp
+
+matrixompB: clean
+	gcc -std=c99 -o matrixompB matrixompB.c -fopenmp
+
 test: clean
 	gcc -std=c99 -o test test.c -fopenmp
 clean:
